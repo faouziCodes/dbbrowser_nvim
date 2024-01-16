@@ -1,0 +1,1 @@
+# dbbrowser_nvim
