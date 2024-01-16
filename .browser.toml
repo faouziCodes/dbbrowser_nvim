@@ -1,0 +1,3 @@
+uri="host=localhost user=pguser password=pguser port=5432 dbname=pgdb"
+database_type="Postgres"
+
