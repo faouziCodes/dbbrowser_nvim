@@ -8,9 +8,10 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
+chrono = "0.4.31"
 lazy_static = "1.4.0"
 nvim-oxi = {version="0.4.1", features=["neovim-0-9"]}
-postgres = "0.19.7"
+postgres = {version="0.19.7", features=["with-chrono-0_4"]}
 serde = { version = "1.0.195", features = ["derive"] }
 sqlite = "0.32.0"
 tabled = "0.15.0"

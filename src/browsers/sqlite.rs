@@ -39,6 +39,7 @@ impl Browser for SqliteBrowser {
         let query = format!("SELECT * FROM {table};");
 
         let mut table_contents = TableContents {
+            table: table.into(),
             names: Vec::new(),
             values: Vec::new(),
         };

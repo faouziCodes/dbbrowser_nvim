@@ -2,16 +2,16 @@ use nvim_oxi as oxi;
 use oxi::{
     api::{
         opts::CreateCommandOpts,
-        types::{
-            CommandArgs, CommandNArgs, WindowConfig, WindowConfigBuilder, WindowRelativeTo,
-            WindowTitle,
-        },
+        types::{CommandArgs, CommandNArgs, WindowConfig, WindowRelativeTo, WindowTitle},
     },
     Dictionary,
 };
-use tabled::{settings::Style, Table};
+use tabled::{
+    settings::{Height, Width},
+    Table,
+};
 
-use crate::{browsers::Browser, config::CONFIG};
+use crate::config::CONFIG;
 
 pub enum UI {
     ListDatabases,
@@ -40,7 +40,7 @@ impl UI {
         let config = WindowConfig::builder()
             .relative(WindowRelativeTo::Cursor)
             .height(win.get_height().unwrap() - 13)
-            .width(win.get_width().unwrap() -  13)
+            .width(win.get_width().unwrap() - 13)
             .row(0)
             .col(0)
             .title(WindowTitle::SimpleString("Databases".into()))
@@ -67,12 +67,19 @@ impl UI {
             }
         };
 
-        let table: Table = table.into();
+        let mut table: Table = table.into();
+        let (win_width, win_height) = (win.get_width().unwrap(), win.get_height().unwrap());
+
+        if win_width > 20 && win_height > 20 {
+            table.with(Width::increase((win_width - 20) as usize));
+            table.with(Height::increase((win_height - 20) as usize));
+        }
+
         let config = WindowConfig::builder()
             .relative(WindowRelativeTo::Cursor)
             .focusable(true)
-            .height(win.get_height().unwrap() - 13)
-            .width(win.get_width().unwrap() -  13)
+            .height(win_height - 10)
+            .width(win_width - 10)
             .row(0)
             .col(0)
             .title(WindowTitle::SimpleString(table_name.as_str().into()))
@@ -109,7 +116,6 @@ pub fn ui() -> oxi::Result<oxi::Dictionary> {
     };
 
     oxi::api::create_user_command("ShowTable", show_table, &opts)?;
-
     let list_databases_view = oxi::Function::from_fn(move |()| match UI::ListDatabases.show() {
         Ok(()) => oxi::Result::Ok(()),
         Err(err) => {
