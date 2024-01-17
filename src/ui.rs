@@ -69,11 +69,8 @@ impl UI {
 
         let mut table: Table = table.into();
         let (win_width, win_height) = (win.get_width().unwrap(), win.get_height().unwrap());
-
-        if win_width > 20 && win_height > 20 {
-            table.with(Width::increase((win_width - 20) as usize));
-            table.with(Height::increase((win_height - 20) as usize));
-        }
+        table
+            .with(Width::truncate((win_width - 20) as usize));
 
         let config = WindowConfig::builder()
             .relative(WindowRelativeTo::Cursor)

@@ -1,5 +1,5 @@
 use super::{Browser, TableContents};
-use chrono::{DateTime, Utc, NaiveDateTime};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use postgres::{types::Type, NoTls};
 
 pub struct PostgresBrowser {
@@ -55,12 +55,30 @@ impl Browser for PostgresBrowser {
 
             for (idx, column) in rows.columns().iter().enumerate() {
                 let value = match column.type_() {
-                    &Type::INT4 => rows.get::<_, i32>(idx).to_string(),
-                    &Type::INT8 => rows.get::<_, i64>(idx).to_string(),
-                    &Type::TEXT | &Type::VARCHAR => rows.get::<_, String>(idx),
-                    &Type::FLOAT4 | &Type::FLOAT8 => rows.get::<_, f32>(idx).to_string(),
-                    &Type::DATE => rows.get::<_, DateTime<Utc>>(idx).to_string(),
-                    &Type::TIMESTAMP => rows.get::<_, NaiveDateTime>(idx).to_string(),
+                    &Type::INT4 => match rows.get::<_, Option<i32>>(idx) {
+                        Some(val) => val.to_string(),
+                        _ => "Null".into(),
+                    },
+                    &Type::INT8 => match rows.get::<_, Option<i64>>(idx) {
+                        Some(val) => val.to_string(),
+                        _ => "Null".into(),
+                    },
+                    &Type::TEXT | &Type::VARCHAR => match rows.get::<_, Option<String>>(idx) {
+                        Some(val) => val.to_string(),
+                        _ => "Null".into(),
+                    },
+                    &Type::FLOAT4 | &Type::FLOAT8 => match rows.get::<_, Option<f32>>(idx) {
+                        Some(val) => val.to_string(),
+                        _ => "Null".into(),
+                    },
+                    &Type::DATE => match rows.get::<_, Option<NaiveDateTime>>(idx) {
+                        Some(val) => val.to_string(),
+                        _ => "Null".into(),
+                    },
+                    &Type::TIMESTAMP => match rows.get::<_, Option<NaiveDateTime>>(idx) {
+                        Some(val) => val.to_string(),
+                        _ => "Null".into(),
+                    },
                     _ => "".into(),
                 };
                 values.push(value);
