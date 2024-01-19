@@ -6,16 +6,14 @@ use oxi::{
     },
     Dictionary,
 };
-use tabled::{
-    settings::{Height, Width},
-    Table,
-};
+use tabled::{settings::Width, Table};
 
 use crate::config::CONFIG;
 
 pub enum UI {
     ListDatabases,
     ShowTable(String),
+    ShowQuery(String),
 }
 
 impl UI {
@@ -23,6 +21,7 @@ impl UI {
         match self {
             UI::ShowTable(table) => UI::show_table(table),
             UI::ListDatabases => UI::list_databases_view(),
+            UI::ShowQuery(query) => UI::show_query(query),
         }
     }
 
@@ -69,8 +68,7 @@ impl UI {
 
         let mut table: Table = table.into();
         let (win_width, win_height) = (win.get_width().unwrap(), win.get_height().unwrap());
-        table
-            .with(Width::truncate((win_width - 20) as usize));
+        table.with(Width::truncate((win_width - 20) as usize));
 
         let config = WindowConfig::builder()
             .relative(WindowRelativeTo::Cursor)
@@ -90,11 +88,46 @@ impl UI {
 
         Ok(())
     }
+
+    pub fn show_query(query: String) -> oxi::Result<()> {
+        let win = oxi::api::get_current_win();
+        let mut buf = oxi::api::create_buf(false, true)?;
+        let table = match CONFIG.get_browser().query(&query) {
+            Ok(databases) => databases,
+            Err(err) => {
+                oxi::api::err_writeln(&format!("Was unable to display query result: {err}"));
+                return Ok(());
+            }
+        };
+
+        let mut table: Table = table.into();
+        let (win_width, win_height) = (win.get_width().unwrap(), win.get_height().unwrap());
+        if win_width > 20 && win_height > 20 {
+            table.with(Width::truncate((win_width - 20) as usize));
+        }
+
+        let config = WindowConfig::builder()
+            .relative(WindowRelativeTo::Cursor)
+            .focusable(true)
+            .height(win_height - 10)
+            .width(win_width - 10)
+            .row(0)
+            .col(0)
+            .title(WindowTitle::SimpleString(query.as_str().into()))
+            .border(oxi::api::types::WindowBorder::Double)
+            .style(oxi::api::types::WindowStyle::Minimal)
+            .build();
+
+        let table_str = table.to_string();
+        buf.set_lines(0..=table_str.len(), false, table_str.lines())?;
+        oxi::api::open_win(&buf, true, &config)?;
+
+        Ok(())
+    }
 }
 
 #[oxi::module]
 pub fn ui() -> oxi::Result<oxi::Dictionary> {
-    // Show table command
     let opts = CreateCommandOpts::builder()
         .desc("Show table contents in a.")
         .nargs(CommandNArgs::OneOrMore)
@@ -111,8 +144,26 @@ pub fn ui() -> oxi::Result<oxi::Dictionary> {
             }
         }
     };
-
     oxi::api::create_user_command("ShowTable", show_table, &opts)?;
+
+    let opts = CreateCommandOpts::builder()
+        .desc("Query a database and display its result")
+        .nargs(CommandNArgs::OneOrMore)
+        .build();
+
+    let show_query = |args: CommandArgs| {
+        let query = args.args.unwrap_or("".to_owned());
+
+        match UI::ShowQuery(query).show() {
+            Ok(()) => Ok(()),
+            Err(err) => {
+                oxi::api::err_writeln(&format!("{err}"));
+                Ok(())
+            }
+        }
+    };
+    oxi::api::create_user_command("Query", show_query, &opts)?;
+
     let list_databases_view = oxi::Function::from_fn(move |()| match UI::ListDatabases.show() {
         Ok(()) => oxi::Result::Ok(()),
         Err(err) => {

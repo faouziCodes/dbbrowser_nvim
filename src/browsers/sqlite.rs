@@ -42,6 +42,38 @@ impl Browser for SqliteBrowser {
             table: table.into(),
             names: Vec::new(),
             values: Vec::new(),
+            metadata: super::MetaDeta { query: query.clone() },
+        };
+
+        conn.iterate(query, |pairs| {
+            let mut values = Vec::new();
+            for &(name, value) in pairs.iter() {
+                if !table_contents.names.contains(&name.into()) {
+                    table_contents.names.push(name.to_string());
+                }
+
+                match value {
+                    Some(val) => values.push(val.to_string()),
+                    None => continue,
+                }
+            }
+            table_contents.values.push(values);
+            true
+        })?;
+
+        Ok(table_contents)
+    }
+
+    fn query(&self, query: &str) -> BrowserResult<TableContents> {
+        let conn = sqlite::open(&self.uri)?;
+
+        let mut table_contents = TableContents {
+            table: "".into(),
+            names: Vec::new(),
+            values: Vec::new(),
+            metadata: super::MetaDeta {
+                query: query.into(),
+            },
         };
 
         conn.iterate(query, |pairs| {
